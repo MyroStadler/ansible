@@ -1,0 +1,114 @@
+---
+all:
+  hosts:
+    medium-docker.mstadler.devonly.net:
+  vars:
+    ansible_user: centos
+    install_dir_name: medium
+
+    install_env_app_env: dev
+    install_env_database_root_password: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      63616635363963333033346234323735646539326431333837633136313265343936386162346534
+      3663666461643235323565383232346536303365373637350a393931356433393961323439333637
+      36336131623532326535343731656636653863633832376236363763663130343563373831333936
+      6535356663343534320a383038333566653532626532306362396665666337643634633862383661
+      6132
+    install_env_database_server_version: "5.7.25"
+    install_env_lines:
+      - name: APP_ENV
+        value: "{{ install_env_app_env }}"
+      - name: APP_DEBUG
+        value: "True"
+      - name: APP_SECRET
+        value: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          35646661326632313762666535643930623539343638323333663535373161313834336637343535
+          3865313333646536653435373762306366623161363331300a303666363366643061396263303031
+          32376165613331396463343561656633363065626131663436323363376262346139666438626438
+          6666316630356135340a626461363666633239326564366630376139383835386264366262356630
+          63313535386662323566373338326339303762633632326632663161383933383961346135353238
+          6130313565633533363439636663333363616434356232623830
+      - name: DOMAIN_NAME
+        value: "{{ inventory_hostname }}"
+      - name: DATABASE_USER
+        value: test
+      - name: DATABASE_PASSWORD
+        value: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          35633161633965363464353735633638336430373839653634333439396265333166653930616439
+          6266313361353331643233343136373735396365626363340a323438303139363162653238343832
+          31303364656662396539386232333037663938306335656439376330666636326535363238383735
+          3633663862633165310a363361616339646539373164613064333863643133666636366338623738
+          3161
+      - name: DATABASE_ROOT_PASSWORD
+        value: "{{ install_env_database_root_password }}"
+      - name: DATABASE_NAME
+        value: medium_dev
+      - name: DATABASE_HOST
+        value: mysql
+      - name: DATABASE_PORT
+        value: 3306
+      - name: DATABASE_SERVER_VERSION
+        value: "{{ install_env_database_server_version }}"
+      - name: DATABASE_URL
+        value: "mysql://root:{{ install_env_database_root_password }}@mysql:3306/medium_dev?serverVersion={{ install_env_database_server_version }}"
+      - name: GOOGLE_CLIENT_ID
+        value: ""
+      - name: GOOGLE_CLIENT_SECRET
+        value: ""
+      - name: APP_HTTP_PORT
+        value: 8080
+      - name: NOVNC_HTTP_PORT
+        value: 8082
+      - name: NOVNC_PORT
+        value: 5900
+      - name: USE_SSL
+        value: No
+      - name: SERVER_ADMIN_EMAIL
+        value: webmaster@medium.lan
+      - name: XDEBUG_REMOTE_HOST
+        value: 127.0.0.1
+      - name: XDEBUG_REMOTE_PORT
+        value: 9000
+      - name: XDEBUG_IDE_KEY
+        value: PHPSTORM
+
+    install_make_targets:
+      - composer
+      - install_docker
+      - wait20
+      - migrations
+      - fixtures
+      - assets
+
+    install_sebooleans:
+      - name: httpd_can_network_connect
+        value: true
+      - name: httpd_can_network_connect_db
+        value: true
+
+    install_repo_ssh_uri: git@github.com:myrostadler/medium.git
+    install_repo_version: develop
+
+    server_extra_packages:
+      - yum-utils
+      - device-mapper-persistent-data
+      - lvm2
+
+    certbot_auto_renew: true
+    certbot_create_if_missing: true
+    certbot_create_method: standalone
+    certbot_admin_email: "webmaster@{{ inventory_hostname }}"
+    certbot_certs:
+      - domains:
+          - "{{ inventory_hostname }}"
+    certbot_create_standalone_stop_services:
+      - httpd
+    certbot_modify_vhost_file: "/etc/httpd/conf.d/{{ install_dir_name }}.conf"
+
+#    docker_compose_version: "1.25.1"
+    docker_users:
+      - apache
+      - centos
+      - root

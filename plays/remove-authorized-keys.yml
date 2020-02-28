@@ -1,0 +1,10 @@
+---
+- name: Remove authorized keys from remote user
+  hosts: all
+  become: true
+  vars:
+    remove_authorized_keys:
+      - foo
+  tasks:
+  - include_role:
+      name: myrostadler.remove_authorized_keys

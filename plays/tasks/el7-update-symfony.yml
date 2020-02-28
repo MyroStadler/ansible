@@ -1,0 +1,54 @@
+#- name: Clean project cache using console
+#  command: php bin/console cache:pool:clear cache.global_clearer
+#  args:
+#    chdir: "{{ install_dir }}"
+#  changed_when: false
+
+- name: Install project assets using console
+  command: php bin/console assets:install
+  args:
+    chdir: "{{ install_dir }}"
+  changed_when: false
+
+- name: Run DB migrations using console
+  command: php bin/console doctrine:migrations:migrate -n
+  args:
+    chdir: "{{ install_dir }}"
+  changed_when: false
+  become: true
+  become_user: apache
+
+- name: Zap project cache folder
+  file:
+    path: "{{ install_dir }}/var/cache"
+    state: absent
+
+- name: "Ensure apache is the owner of and permissions are correct for {{ install_dir }}"
+  file:
+    dest: "{{ install_dir }}"
+    owner: apache
+    group: apache
+    mode: u=rwX,g=rX,o=rX
+    recurse: true
+
+- name: Ensure public folder permissions are relaxed
+  file:
+    path: "{{ item }}"
+    mode: '775'
+    recurse: true
+    state: directory
+    owner: apache
+  with_items:
+    - "{{ install_dir }}/public"
+  when: install_type is defined and install_type == 'symfony4'
+
+- name: Ensure var folder permissions are relaxed
+  file:
+    path: "{{ item }}"
+    mode: '777'
+    recurse: true
+    state: directory
+    owner: apache
+  with_items:
+    - "{{ install_dir }}/var"
+  when: install_type is defined and install_type == 'symfony4'

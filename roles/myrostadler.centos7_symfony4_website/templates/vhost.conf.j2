@@ -1,0 +1,19 @@
+<VirtualHost *:80>
+    ServerName {{ inventory_hostname }}
+    Redirect / https://{{ inventory_hostname }}/
+</VirtualHost>
+
+<VirtualHost _default_:443>
+    ServerAdmin webmaster@{{ inventory_hostname }}
+    DocumentRoot {{ install_dir }}/public
+    ServerName {{ inventory_hostname }}
+    DirectoryIndex index.php
+    <Directory {{ install_dir }}/public>
+        AllowOverride All
+        Order Allow,Deny
+        Allow from All
+    </Directory>
+    SSLEngine On
+    SSLCertificateFile {{ install_ssl_cert_file }}
+    SSLCertificateKeyFile {{ install_ssl_cert_key_file }}
+</VirtualHost>

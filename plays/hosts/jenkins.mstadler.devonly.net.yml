@@ -1,0 +1,81 @@
+---
+all:
+  hosts:
+    ci.mstadler.devonly.net:
+  vars:
+    ansible_user: ubuntu
+    ansible_become_pass: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      30623733313361373337336533646530623832316262306163336161363662356630646162396361
+      6266636463326632363534393866336462643733363135350a323463313265613861383065323436
+      39323062366137646634333765383265323366626333613065393731613834353563346633633231
+      3964363339393163610a643065613537313134663732313162383438616633353462613661646132
+      30346138373934313134363536393731343365313237613839306162613664633133353465646265
+      6431386238373635303536373131386432653461626662343361
+
+    jenkins_user_pass: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      34303537343563363164393339613130306532626236613839653232383561643036336136306662
+      3161313833386534333466613563336635623739353036610a353131306564666137616339643065
+      64633162633136323138353335306362613263323934636538643663363831653462336138393534
+      6336613133356166610a626464326364613234326131316462393238633135613035376536666563
+      30323165636635646330376137626532613530333335643637666365393636616437343964616535
+      6266623332343731386135336638323165366365643139396135
+    jenkins_maintenance_dir: /root/jenkins/maintenance
+
+    ssh_identity_remote_users:
+      - user: jenkins
+
+    ssh_deploy_prep_extra_users:
+      - jenkins
+
+    vhost_file: /etc/apache2/sites-available/jenkins.conf
+    server_packages_initial:
+      - software-properties-common
+      - coreutils
+      - apt-transport-https
+      - ssl-cert
+    server_packages:
+      - coreutils
+      - apache2
+      - php-json
+      - cron
+      - unzip
+      - ruby-sass
+      - python3
+      - python3-pyparsing
+      - openjdk-8-jdk
+      - php7.2-cli
+      - php-curl
+      - php-mbstring
+      - php-xml
+    jenkins_packages:
+      - jenkins
+    server_enabled_services:
+      - apache2
+      - jenkins
+      - docker
+    docker_users:
+      - apache
+      - "{{ ansible_user }}"
+      - root
+      - jenkins
+
+
+    install_ssl_cert_file: /etc/ssl/certs/ssl-cert-snakeoil.pem
+    install_ssl_cert_key_file: /etc/ssl/private/ssl-cert-snakeoil.key
+
+    certbot_auto_renew: true
+    certbot_create_if_missing: true
+    certbot_create_method: standalone
+    certbot_admin_email: "webmaster@{{ inventory_hostname }}"
+    certbot_certs:
+      - domains:
+          - "{{ inventory_hostname }}"
+    certbot_create_standalone_stop_services:
+      - apache2
+    certbot_modify_vhost_file: "{{ vhost_file }}"
+    certbot_restart_services_on_completion: "{{ server_enabled_services }}"
+
+
+

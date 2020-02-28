@@ -1,0 +1,8 @@
+---
+- name: "Add your local, private SSH identity to a server"
+  hosts: all
+  become: true
+  vars:
+  tasks:
+    - include_role:
+        name: myrostadler.add_ssh_identity

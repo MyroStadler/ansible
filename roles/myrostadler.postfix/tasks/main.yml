@@ -1,0 +1,23 @@
+---
+- name: Install postfix
+  package:
+    name: postfix
+    state: present
+
+- name: Check if postfix configuration file exists
+  stat:
+    path: "{{ postfix_conf_file }}"
+  register: stat_postfix_conf
+
+- name: Add configuration file if missing
+  template:
+    src: main.cf.j2
+    dest: "{{ postfix_conf_file }}"
+    mode: 0775
+  when: not stat_postfix_conf.stat.exists
+
+- name: Start postfix
+  service:
+    name: postfix
+    state: restarted
+    enabled: true

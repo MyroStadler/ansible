@@ -1,0 +1,195 @@
+---
+- name: "DEV: Install Jenkins on Ubuntu 18.04"
+  hosts: all
+  become: true
+  vars:
+  tasks:
+    - name: Install initial server packages
+      apt:
+        name: "{{ server_packages_initial }}"
+        state: present
+        update_cache: true
+
+    - name: Add repositories
+#      apt_repository:
+#        repo: "{{ server_repositories }}"
+#        state: present
+      shell:
+        cmd: "add-apt-repository ppa:openjdk-r/ppa -y"
+
+    - name: Install server packages
+      apt:
+        name: "{{ server_packages }}"
+        state: present
+        update_cache: true
+
+    - include_role:
+        name: geerlingguy.composer
+
+    - include_role:
+        name: geerlingguy.docker
+
+    - name: Prepare to install jenkins
+      shell:
+        cmd: "{{  item }}"
+      with_items:
+        - wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | sudo apt-key add -
+        - echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list
+        - apt update -y
+
+    - name: Install Jenkins
+      apt:
+        name: "{{ jenkins_packages }}"
+        state: present
+        update_cache: true
+
+    - name: Enable services
+      service:
+        name: "{{ item }}"
+        enabled: true
+      with_items: "{{ server_enabled_services }}"
+
+    - name: Add virtual host
+      template:
+        src: jenkins.vhost.conf.j2
+        dest: "{{ vhost_file }}"
+
+    - name: Configure
+      shell:
+        cmd: "{{ item }}"
+      with_items:
+        - a2enmod ssl
+        - a2enmod proxy
+        - a2enmod proxy_http
+        - a2enmod headers
+        - a2enmod rewrite
+        - a2dissite 000-default
+        - a2ensite jenkins
+        - ufw disable # we never can guess what ports docker containers expose -- leave ingress security to OpenStack
+#        - ufw allow ssh
+#        - ufw allow http
+#        - ufw allow https
+#        - ufw enable
+
+    - name: Create Jenkins maintenance directory
+      file:
+        state: directory
+        dest: "{{ jenkins_maintenance_dir }}"
+        mode: 0700
+
+    - name: Create Jenkins maintenance script files
+      copy:
+        content: "{{ item.content }}"
+        dest: "{{ jenkins_maintenance_dir }}/{{ item.name }}"
+        mode: 0700
+      with_items:
+        - name: clean_workspace.sh
+          content: rm -Rf /var/lib/jenkins/workspace/**
+        - name: own_workspace.sh
+          content: chown -R jenkins:jenkins /var/lib/jenkins/workspace
+
+    - set_fact:
+        jenkins_user_pass_string: "{{ jenkins_user_pass }}"
+      no_log: true
+
+    - name: Set known jenkins user password
+      user:
+        name: jenkins
+        password: "{{ jenkins_user_pass_string | password_hash('sha512') }}"
+        update_password: always
+      when: jenkins_user_pass is defined
+
+
+    - name: Add jenkins user to sudoers with passwordless maintenance permissions only
+      copy:
+        content: |
+          # User rules for jenkins
+          Defaults:jenkins        timestamp_timeout=0
+          jenkins ALL=(ALL) ALL
+          jenkins ALL=(ALL) NOPASSWD:{{ jenkins_maintenance_dir }}/
+        dest: /etc/sudoers.d/100-jenkins-user
+        mode: 0440
+
+    - include_role:
+        name: myrostadler.certbot
+
+    - name : Run Jenkins on port 9999 so no docker conflict on 8080
+      ini_file:
+        path: /etc/default/jenkins
+        section: null
+        option: HTTP_PORT
+        value: 9999
+        no_extra_spaces: true
+
+    - name: Jenkins listens on 127.0.0.1 only
+      lineinfile:
+        dest: /etc/default/jenkins
+        line: "--httpListenAddress=127.0.0.1"
+        state: present
+
+    - include_role:
+        name: myrostadler.ssh_deploy_prep
+#
+#    - include_role:
+#        name: myrostadler.add_ssh_identity
+
+    - name: Restart services
+      service:
+        name: "{{ item }}"
+        state: restarted
+      with_items: "{{ server_enabled_services }}"
+
+    - name: Check if admin password file exists
+      stat:
+        path: /var/lib/jenkins/secrets/initialAdminPassword
+      register: stat_admin_pass
+
+    - name: Read admin password
+      shell:
+        cmd: cat /var/lib/jenkins/secrets/initialAdminPassword
+      register: jenkins_admin_pass
+      when: stat_admin_pass.stat.exists
+
+    - name: "Suggested actions:"
+      pause:
+        seconds: 0
+        prompt: |
+
+          A. Admin password {{ jenkins_admin_pass.stdout_lines[0] }} should be entered on first run
+
+          B. Install plugins:
+            (1) Post build task - to run bash in post-build step
+            (2) Build environment - to have ANSI color plugin checkbox
+            (3) ANSI color - to render color escape codes
+            (4) Simple theme - to add CSS to style console output
+            (5) SSH Agent - to add credentials so e.g. composer install of private repos use the creds
+            (6) Authorize project - to allow per-project auth
+
+          C. CSS like the below should be added in Configure system > Theme > Extra CSS:
+            .console-output {
+              background: #2a2a2a;
+              color: #f1f1f1;
+              padding: 1em;
+              word-wrap: break-word;
+            }
+            .console-output p {
+              color: #f1f1f1;
+            }
+            .console-output a {
+              color: #ffc9c9;
+            }
+
+          D. The system should be configured to be safe.
+            (1) In Configure Global Security choose Project-based Matrix Authorization Strategy.
+                Anonymous user can do nothing. Authenticated users can overall:read, agent:build,
+                job:build,cancel,read. Give yourself (the admin) overall:administer.
+                Set the options under "Access control for builds" to include
+                everything except "Run as SYSTEM".
+            (2) Maintenance jobs should be set to run as specific user "admin" via Job > Authorize
+                and should have "Enable project-based security" checked in Job > Configure > General.
+                For the latter set Inheritance Strategy to "Do not inherit..." and leave everything
+                unchecked.
+            (3) All project-related jobs should be set to run as the user who authenticated via
+                Job > Authorize.
+
+      when: stat_admin_pass.stat.exists

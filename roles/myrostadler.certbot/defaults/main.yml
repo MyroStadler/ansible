@@ -1,0 +1,5 @@
+---
+certbot_modify_vhost_file: /etc/httpd/conf.d/vhost.conf
+certbot_cert_domain_folder_name: "{{ inventory_hostname }}"
+certbot_restart_services_on_completion:
+  - httpd

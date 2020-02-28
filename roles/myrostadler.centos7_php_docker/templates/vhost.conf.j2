@@ -1,0 +1,28 @@
+<VirtualHost *:80>
+    ServerName {{ inventory_hostname }}
+    Redirect / https://{{ inventory_hostname }}/
+</VirtualHost>
+
+<VirtualHost _default_:443>
+    ServerAdmin webmaster@{{ inventory_hostname }}
+    ServerName {{ inventory_hostname }}
+
+    SSLEngine On
+    SSLCertificateFile {{ install_ssl_cert_file }}
+    SSLCertificateKeyFile {{ install_ssl_cert_key_file }}
+
+    SSLProxyEngine On
+    SSLProxyCheckPeerCN off
+    SSLProxyCheckPeerExpire off
+    SSLProxyCheckPeerName off
+
+    <Proxy http://localhost:8080/*>
+      Order deny,allow
+      Allow from all
+    </Proxy>
+
+    ProxyPreserveHost On
+    ProxyPass         /  http://localhost:8080/ nocanon
+    ProxyPassReverse  /  http://localhost:8080/
+    ProxyPassReverse  /  https://{{ inventory_hostname }}/
+</VirtualHost>

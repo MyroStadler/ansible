@@ -1,0 +1,21 @@
+---
+- name: "Modify SELinux booleans"
+  seboolean:
+    name: "{{ item.name }}"
+    persistent: true
+    state: "{{ item.state }}"
+  with_items: "{{ selinux_booleans }}"
+  when: selinux_booleans is defined and selinux_booleans|length > 0
+
+- name: "Modify SELinux contexts..."
+  sefcontext:
+    target: "{{ item.target }}"
+    setype: "{{ item.setype }}"
+    state: "{{ item.state }}"
+  with_items: "{{ selinux_contexts }}"
+  when: selinux_contexts is defined and selinux_contexts|length > 0
+
+- name: "...and apply SELinux contexts"
+  command: "restorecon -irv {{ item.target }}"
+  with_items: "{{ selinux_contexts }}"
+  when: selinux_contexts is defined and selinux_contexts|length > 0

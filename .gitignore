@@ -1,0 +1,9 @@
+.idea
+.DS_Store
+
+.vault_password
+galaxy_token
+/cp
+/tmp
+
+.local*/

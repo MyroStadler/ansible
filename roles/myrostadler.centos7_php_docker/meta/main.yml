@@ -1,0 +1,12 @@
+galaxy_info:
+  role_name: centos7_php_docker
+  description: Install a PHP dockerised network in an apache wrapper
+  author: Myro Stadler
+  license: GPL-3.0-only
+  min_ansible_version: 2.9
+  platforms:
+   - name: EL
+     versions:
+     - 7
+dependencies:
+  - geerlingguy.composer

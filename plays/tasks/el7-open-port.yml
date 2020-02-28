@@ -1,0 +1,12 @@
+- name: "firewalld: allow {{ port }}/{{ protocol | default('tcp') }}"
+  firewalld:
+    port: "{{ port }}/{{ protocol | default('tcp') }}"
+    permanent: true
+    state: enabled
+
+- name: "SELinux: allow port {{ port }}/{{ protocol | default('tcp') }}/{{ type | default('http_port_t') }}"
+  seport:
+    ports: "{{ port }}"
+    proto: "{{ protocol | default('tcp') }}"
+    setype: "{{ type | default('http_port_t') }}"
+    state: present

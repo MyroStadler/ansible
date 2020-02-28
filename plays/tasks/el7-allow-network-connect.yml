@@ -1,0 +1,18 @@
+- name: "SELinux: allow network to connect"
+  seboolean:
+    name: httpd_can_network_connect
+    persistent: true
+    state: true
+- name: "SELinux: allow network to connect to the database"
+  seboolean:
+    name: httpd_can_network_connect_db
+    persistent: true
+    state: true
+- name: "SELinux: allow users to connect to PostgreSQL"
+  seboolean:
+    name: allow_user_postgresql_connect
+    persistent: true
+    state: true
+#  Only if changed while disabled is a reboot necessary, see https://unix.stackexchange.com/questions/39148/why-do-selinux-policies-require-a-system-restart
+#- name: "Reboot so SELinux changes are effected"
+#  reboot:

@@ -1,0 +1,4 @@
+---
+postfix_conf_file: /etc/postfix/main.cf
+postfix_conf_destination: localhost
+postfix_conf_myhostname: "{{ inventory_hostname }}"

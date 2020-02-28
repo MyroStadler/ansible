@@ -1,0 +1,29 @@
+<VirtualHost *:80>
+    ServerName {{ inventory_hostname }}
+    Redirect / https://{{ inventory_hostname }}/
+</VirtualHost>
+
+<VirtualHost *:443>
+	ServerName {{ inventory_hostname }}
+	ServerAlias {{ inventory_hostname }}
+	SSLEngine On
+	SSLCertificateFile {{ install_ssl_cert_file }}
+	SSLCertificateKeyFile {{ install_ssl_cert_key_file }}
+	ProxyRequests     Off
+	ProxyPreserveHost On
+	AllowEncodedSlashes NoDecode
+	<Proxy http://localhost:9999/*>
+		Order allow,deny
+		Allow from all
+	</Proxy>
+	ProxyPass         /  http://localhost:9999/ nocanon
+	ProxyPassReverse  /  http://localhost:9999/
+	ProxyPassReverse  /  http://{{ inventory_hostname }}/
+	RequestHeader set X-Forwarded-Proto "https"
+	RequestHeader set X-Forwarded-Port "443"
+	{% if install_vhost_env_vars is defined %}
+	{% for setting in install_vhost_env_vars %}
+	SetEnv {{ setting.name }} {{ setting.value }}
+	{% endfor %}
+	{% endif %}
+</VirtualHost>

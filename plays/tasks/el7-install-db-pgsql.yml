@@ -1,0 +1,51 @@
+- name: Determine databases
+  set_fact:
+    postgresql_databases:
+      - name: "{{ install_env_database_name }}" # required; the rest are optional
+        lc_collate: en_GB.UTF-8
+        lc_ctype: en_GB.UTF-8
+        login_password: # defaults to not set
+        login_user: # defaults to 'postgresql_user'
+        owner: "{{ install_env_database_user }}"
+  when: >
+    install_database and install_env_database_name is defined and (install_env_database_name | default(false))
+    and install_env_database_user is defined and (install_env_database_user | default(false))
+
+- name: Determine users
+  set_fact:
+    postgresql_users:
+      - name: "{{ install_env_database_user }}" #required; the rest are optional
+        password: "{{ install_env_database_password }}"
+  #        db: "{{ install_env_database_name }}" # defaults to not set # this error - db does not exist - this is because the user is created first so they can own the db
+  when: >
+    install_database and install_env_database_user is defined and (install_env_database_user | default(false))
+    and install_env_database_password is defined and (install_env_database_password | default(false))
+
+- name: Determine locale
+  set_fact:
+    postgresql_locales:
+      - 'en_GB.UTF-8'
+  when: postgresql_locales is not defined
+
+- name: Determine PostgreSQL HBA entries
+  set_fact:
+    postgresql_hba_entries:
+      - { type: local, database: all, user: postgres, auth_method: peer }
+      - { type: local, database: all, user: all, auth_method: peer }
+      - { type: host, database: all, user: all, address: '127.0.0.1/32', auth_method: md5 }
+      - { type: host, database: all, user: all, address: '::1/128', auth_method: md5 }
+  when: postgresql_hba_entries is not defined
+
+- name: Add dynamic PostgreSQL HBA entries
+  set_fact:
+    postgresql_hba_entries: "{{postgresql_hba_entries + [ {'address':item.ip + '/' + item.mask, 'auth_method':'md5', \
+      'database':'all', 'type':'host', 'user':'all' } ]}}"
+  with_items: "{{ allow_external_connections_from }}"
+  when: allow_external_connections_from is defined
+
+- include_role:
+    name: geerlingguy.postgresql
+
+- include: el7-allow-network-connect.yml
+
+

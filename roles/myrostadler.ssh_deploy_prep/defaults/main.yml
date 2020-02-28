@@ -1,0 +1,12 @@
+---
+ssh_deploy_prep_restart_services:
+  - sshd
+ssh_deploy_prep_known_hosts:
+  - "git.unipart.io ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDpBhT8N+as8YKC5L0H43hiCTywiwgdQksgk0B97YN21UtZTaTLdL2\
+    f0K3rO4OEBS0Yo7fiByw3lW46+/+nlWycs4RG636IjgLO+ZgZt22NMMlCH/UEJcWVTVMlLQe/M6Nk3OeDE6lMUYXj91ECLy/ngZ1zssnEqT\
+    DvnJi+841TWqsz/ugI49LTzu4IdFlqMJxXw5sU1YsYtQBFOng2E4/y6e1nFhKWv9v27AaaEwSrHOkwMdEChMqNjooYuvJjwx2utSuc+eLOA\
+    8avS0F9hhnJt9zlpBJl45KtQ8XpS2ZThQegIhJb6rk6aadZhgsJpHHd9Xoc3wzR2ZDPLwoDWs8b"
+  - "github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVh\
+    p5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmv\
+    U31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq\
+    3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ=="

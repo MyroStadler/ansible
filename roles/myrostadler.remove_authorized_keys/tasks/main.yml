@@ -1,0 +1,17 @@
+---
+- name: Get the remote user
+  command: whoami
+  register: remote_user
+  become: false
+  changed_when: false
+- name: Ensure correct permissions on authorized_keys
+  file:
+    dest: "/home/{{ remote_user.stdout }}/.ssh/authorized_keys"
+    state: file
+    mode: 0600
+- name: Remove keys from authorized_keys
+  lineinfile:
+    dest: "/home/{{ remote_user.stdout }}/.ssh/authorized_keys"
+    line: "{{ item }}"
+    state: absent
+  with_items: "{{ remove_authorized_keys }}"

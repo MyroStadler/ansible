@@ -1,0 +1,31 @@
+all:
+  vars:
+    local_public_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCvmaZv6tagG48vNvQwV19IGZgXigXHz5+0Jt1B97s8SqTf/W9Cv2rD6DQaoBxHfbRM03Q9ggaZ7uRHUwwXv0ZqxyffRnQDGzXCEAUaxSzAXkJ8rfGTTQn27IOhP1zDM46j7VBHAUM+exAL7jkyNSRxvMc0e6P/yW/spBVupvgKFKSVbkTR0VwtpxdlpFey7i46LoQwdCEe6NXG7kPaOIGcDiearuMiaITEx1SnALcguerZ91r61Zd82TBoiJD2TzSz6dmjLAe7bjwOV8rryKTXndMJnIS5UBdj+1fzGM03bk/GeGUsmdNNW1etg/TBT5Nr1ErfPwaNDUso9zAIr0+H myro@MacBook-Air.qs.unipart.io
+  children:
+
+
+    centos7:
+      vars:
+        ansible_user: centos
+        ssh_identity_remote_users:
+          - user: centos
+      hosts:
+
+        medium.mstadler.devonly.net:
+
+
+    ubuntu1804:
+      vars:
+        ansible_user: ubuntu
+        ssh_identity_remote_users:
+          - user: ubuntu
+      hosts:
+
+        ci.mstadler.devonly.net:
+          ssh_identity_remote_users:
+            - user: ubuntu
+            - user: jenkins
+          ssh_deploy_prep_extra_users:
+            - jenkins
+
+        commcell.mstadler.devonly.net:

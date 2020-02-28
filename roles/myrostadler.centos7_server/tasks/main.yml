@@ -1,0 +1,69 @@
+---
+# tasks file for centos7_apache_php72
+## 403 for this is unreasonable - rationale is updates should be done by server admins
+#- name: Upgrade all packages
+#  yum:
+#    name: '*'
+#    state: latest
+#    update_cache: true
+
+- name: Install common server packages
+  yum:
+    name: "{{ server_packages }}"
+    state: present
+    update_cache: true
+
+- name: Install server_apache_packages
+  yum:
+    name: "{{ server_apache_packages }}"
+    state: present
+    update_cache: true
+
+- name: Install server_ops_packages
+  yum:
+    name: "{{ server_ops_packages }}"
+    state: present
+    update_cache: true
+
+- name: Install server_extra_packages
+  yum:
+    name: "{{ server_extra_packages }}"
+    state: present
+    update_cache: true
+
+- name: Enable services
+  service:
+    name: "{{ item }}"
+    enabled: true
+  with_items: "{{ server_enabled_services }}"
+
+- name: Add epel-release repo
+  yum:
+    name: epel-release
+    state: present
+
+- name: Open port 80 for http access
+  firewalld:
+    service: http
+    permanent: true
+    state: enabled
+  when: "'firewalld' in server_packages"
+
+- name: Open port 443 for https access
+  firewalld:
+    service: https
+    permanent: true
+    state: enabled
+  when: "'firewalld' in server_packages"
+
+- name: Restart the firewalld service to load in the firewall changes
+  service:
+    name: firewalld
+    state: restarted
+  when: "'firewalld' in server_packages"
+
+- name: Restart Apache
+  service:
+    name: httpd
+    state: restarted
+  when: "'firewalld' in server_packages"

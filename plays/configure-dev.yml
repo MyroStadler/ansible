@@ -1,0 +1,19 @@
+---
+- name: "Configure developments servers"
+  hosts: all
+  become: true
+  tasks:
+    - name: Debug
+      debug:
+        var: ssh_identity_remote_users
+    - name: Only you can SSH-key login as root
+      copy:
+        content: "{{ local_public_key }}"
+        dest: /root/.ssh/authorized_keys
+        mode: 0644
+
+    - include_role:
+        name: myrostadler.ssh_deploy_prep
+
+    - include_role:
+        name: myrostadler.add_ssh_identity

@@ -1,0 +1,18 @@
+---
+#ssh_identity_local_ssh_pass: !vault |
+#  $ANSIBLE_VAULT;1.1;AES256
+#  62373265653738393734313966353132376636376437323430623063373061316131346665376638
+#  3639633663656464353664393864663562636231623337380a336231383164623266386334653936
+#  35643762303964616161653939383061373832316535363831323939303139326231653932306663
+#  6336643237396137310a626336393130366434623235373066626336306338343562326662363239
+#  6563
+ssh_identity_local_ssh_dir: ~/.ssh
+ssh_identity_local_ssh_key_private: id_rsa
+ssh_identity_local_ssh_key_public: id_rsa.pub
+
+ssh_identity_remote_users:
+  - user: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    ssh_dir: "/home/{{ ansible_user }}/.ssh"
+    key_file_name_private: id_rsa
+    key_file_name_public: id_rsa.pub

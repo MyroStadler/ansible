@@ -1,0 +1,61 @@
+---
+all:
+  hosts:
+    maya6.mstadler.devonly.net:
+  vars:
+    ansible_user: centos
+    ansible_become_pass: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      30623733313361373337336533646530623832316262306163336161363662356630646162396361
+      6266636463326632363534393866336462643733363135350a323463313265613861383065323436
+      39323062366137646634333765383265323366626333613065393731613834353563346633633231
+      3964363339393163610a643065613537313134663732313162383438616633353462613661646132
+      30346138373934313134363536393731343365313237613839306162613664633133353465646265
+      6431386238373635303536373131386432653461626662343361
+
+    server_extra_packages:
+      - nmap
+      - chromium
+      - libreoffice
+
+    php_install_extra_packages:
+      - php72-php-pear
+      - php72-php-pecl-imagick
+      - php72-php-pecl-imagick-devel
+
+    selinux_booleans:
+      - name: httpd_can_network_connect
+        state: true
+      - name: httpd_execmem
+        state: true
+
+    selinux_contexts: []
+#    rather write to /tmp
+#      - target: /var/www/maya/tmp
+#        setype: httpd_sys_rw_content_t
+#        state: present
+
+    git_update_does_reset: true
+    git_update_does_clean: false
+
+    php_ini_xdebug_remote_enable: 1
+    php_ini_xdebug_remote_port: 9001
+
+    install_database: false
+    install_public_folder: public
+    install_dir_name: maya
+    install_env_app_env: dev
+    install_env_domain_name: "{{ inventory_hostname }}"
+    install_repo_ssh_uri: git@github.com:myrostadler/maya.git
+    install_repo_version: develop
+
+    certbot_auto_renew: true
+    certbot_create_if_missing: true
+    certbot_create_method: standalone
+    certbot_admin_email: "webmaster@{{ inventory_hostname }}"
+    certbot_certs:
+      - domains:
+          - "{{ inventory_hostname }}"
+    certbot_create_standalone_stop_services:
+      - httpd
+    certbot_modify_vhost_file: "/etc/httpd/conf.d/{{ install_dir_name }}.conf"

@@ -1,0 +1,12 @@
+galaxy_info:
+  role_name: centos7_symfony4_website
+  author: Myro Stadler
+  description: Install a Symfony4 website from a git repo on Centos7
+  license: GPL-3.0-only
+  min_ansible_version: 2.9
+  platforms:
+   - name: EL
+     versions:
+     - 7
+dependencies:
+  - geerlingguy.composer

@@ -1,0 +1,71 @@
+---
+- name: Get install directory
+  set_fact: install_dir="/var/www/{{ install_dir_name }}"
+
+- name: Add / replace default SSL config
+  template:
+    src: ssl.conf.j2
+    dest: "{{ install_default_ssl_conf_file }}"
+    force: true
+
+- name: Add virtual host
+  template:
+    src: vhost.conf.j2
+    dest: "{{ install_conf_scan_folder }}/{{ install_dir_name }}.conf"
+
+- name: Zap old git checkout in /tmp
+  file:
+    path: "/tmp/{{ install_dir_name }}"
+    state: absent
+
+- name: Check out site git repo to /tmp, using SSH
+  git:
+    repo: "{{ install_repo_ssh_uri }}"
+    version: "{{ install_repo_version }}"
+    dest: "/tmp/{{ install_dir_name }}"
+    clone: true
+    accept_hostkey: true
+  become: false
+
+- name: Zap old installed website
+  file:
+    path: "{{ install_dir }}"
+    state: absent
+
+- name: "Copy repo checkout to {{ install_dir }}"
+  command: "mv /tmp/{{ install_dir_name }} /var/www/"
+  changed_when: false
+
+- name: Check if composer.json exists
+  stat:
+    path: "{{ install_dir }}/composer.json"
+  register: stat_composer_json
+
+- name: Install php project libraries using composer
+  composer:
+    command: install
+    working_dir: "{{ install_dir }}"
+    # composer does not see scripts as secure when running as root, you would get a warning
+    no_scripts: true
+    no_dev: "{{ install_env_app_env != 'dev' }}"
+  when: stat_composer_json.stat.exists
+
+- name: "Ensure apache is the owner of and permissions are correct for {{ install_dir }}"
+  file:
+    dest: "{{ install_dir }}"
+    owner: apache
+    group: apache
+    mode: u=rwX,g=rX,o=rX
+    recurse: true
+
+- name: Ensure appropriate folder permissions are relaxed
+  file:
+    path: "{{ install_dir }}{{ '/' if install_public_folder else '' }}{{ install_public_folder }}"
+    mode: 0755
+    recurse: true
+  when: install_public_folder | default(false) # [602] Don't compare to empty string
+
+- name: Restart Apache
+  service:
+    name: httpd
+    state: restarted

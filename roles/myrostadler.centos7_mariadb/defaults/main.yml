@@ -1,0 +1,6 @@
+---
+# defaults file for centos7_mariadb
+env_database_root_password: rootpass
+env_database_user: test
+env_database_password: testpass
+install_database: false

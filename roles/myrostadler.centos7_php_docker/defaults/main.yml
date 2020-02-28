@@ -1,0 +1,6 @@
+---
+install_repo_version: master
+install_ssl_cert_file: /etc/pki/tls/certs/localhost.crt
+install_ssl_cert_key_file: /etc/pki/tls/private/localhost.key
+install_default_ssl_conf_file: /etc/httpd/conf.d/ssl.conf
+install_conf_scan_folder: /etc/httpd/conf.d

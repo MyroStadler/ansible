@@ -1,0 +1,143 @@
+---
+- name: Get install directory
+  set_fact: install_dir="/var/www/{{ install_dir_name }}"
+
+- include: get-db-server-version.yml
+
+- name: Show DB server version
+  debug:
+    msg: "{{ install_env_database_server_version }}"
+  when: install_database or website_has_remote_database
+
+- name: Add / replace default SSL config
+  template:
+    src: ssl.conf.j2
+    dest: "{{ install_default_ssl_conf_file }}"
+    force: true
+
+- name: Add virtual host
+  template:
+    src: vhost.conf.j2
+    dest: "{{ install_conf_scan_folder }}/{{ install_dir_name }}.conf"
+
+- name: Zap old git checkout in /tmp
+  file:
+    path: "/tmp/{{ install_dir_name }}"
+    state: absent
+
+#- name: Check out site git repo to /tmp, using SSH
+#  git:
+#    repo: "{{ install_repo_ssh_uri }}"
+#    version: "{{ install_repo_version }}"
+#    dest: "/tmp/{{ install_dir_name }}"
+#    clone: true
+#    accept_hostkey: true
+#  become: false
+
+- name: Git checkout
+  command:
+    cmd: "git clone --branch {{ install_repo_version }} {{ install_repo_ssh_uri }} {{ install_dir_name }}"
+    chdir: /tmp
+  when: true
+  args:
+    warn: false
+
+- name: Zap old installed website
+  file:
+    path: "{{ install_dir }}"
+    state: absent
+
+- name: "Copy repo checkout to {{ install_dir }}"
+  command: "mv /tmp/{{ install_dir_name }} /var/www/"
+  changed_when: false
+
+- name: Add standard .env file
+  template:
+    src: env.j2
+    dest: "{{ install_dir }}/.env"
+
+- name: Add extra lines to .env file
+  lineinfile:
+    dest: "{{ install_dir }}/.env"
+    line: "{{ item.name }}={{ item.value }}"
+  with_items: "{{ install_env_extra }}"
+  no_log: true
+
+- name: Add useless but required .env.local.php file
+  template:
+    src: env.local.php.j2
+    dest: "{{ install_dir }}/.env.local.php"
+
+- name: Install php project libraries using composer
+  composer:
+    command: install
+    working_dir: "{{ install_dir }}"
+    # composer does not see scripts as secure when running as root, you would get a warning
+    no_scripts: true
+    no_dev: "{{ install_env_app_env != 'dev' }}"
+
+#- name: Clean project cache using console
+#  command: php bin/console cache:pool:clear cache.global_clearer
+#  args:
+#    chdir: "{{ install_dir }}"
+#  changed_when: false
+
+- name: Install project assets using console
+  command: php bin/console assets:install
+  args:
+    chdir: "{{ install_dir }}"
+  changed_when: false
+
+- name: Run DB migrations using console
+  command: php bin/console doctrine:migrations:migrate -n
+  args:
+    chdir: "{{ install_dir }}"
+  changed_when: false
+  when: install_database or website_has_remote_database
+
+- name: Load fixtures using console
+  command: php bin/console doctrine:fixtures:load -n
+  args:
+    chdir: "{{ install_dir }}"
+  changed_when: false
+  when: (install_database or website_has_remote_database) and install_recreate_fixtures
+
+- name: Zap project cache folder
+  file:
+    path: "{{ install_dir }}/var/cache"
+    state: absent
+
+- name: "Ensure apache is the owner of and permissions are correct for {{ install_dir }}"
+  file:
+    dest: "{{ install_dir }}"
+    owner: apache
+    group: apache
+    mode: u=rwX,g=rX,o=rX
+    recurse: true
+
+- name: Ensure public folder permissions are relaxed
+  file:
+    path: "{{ item }}"
+    mode: '775'
+    recurse: true
+    state: directory
+    owner: apache
+  with_items:
+    - "{{ install_dir }}/public"
+  when: install_type is defined and install_type == 'symfony4'
+
+- name: Ensure var folder permissions are relaxed
+  file:
+    path: "{{ item }}"
+    mode: '777'
+    recurse: true
+    state: directory
+    owner: apache
+  with_items:
+    - "{{ install_dir }}/var"
+  when: install_type is defined and install_type == 'symfony4'
+
+- name: Restart Apache
+  service:
+    name: httpd
+    state: restarted

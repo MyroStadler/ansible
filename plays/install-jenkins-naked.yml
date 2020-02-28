@@ -1,0 +1,119 @@
+---
+- name: "DEV: Install Jenkins on Ubuntu 18.04 without proxypass"
+  hosts: all
+  become: true
+  vars:
+  tasks:
+    - name: Install initial server packages
+      apt:
+        name: "{{ server_packages_initial }}"
+        state: present
+        update_cache: true
+
+    - name: Add repositories
+#      apt_repository:
+#        repo: "{{ server_repositories }}"
+#        state: present
+      shell:
+        cmd: "add-apt-repository ppa:openjdk-r/ppa -y"
+
+    - name: Install server packages
+      apt:
+        name: "{{ server_packages }}"
+        state: present
+        update_cache: true
+
+    - include_role:
+        name: geerlingguy.composer
+
+    - include_role:
+        name: geerlingguy.docker
+
+    - name: Prepare to install jenkins
+      shell:
+        cmd: "{{  item }}"
+      with_items:
+        - wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | sudo apt-key add -
+        - echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list
+        - apt update -y
+
+    - name: Install Jenkins
+      apt:
+        name: "{{ jenkins_packages }}"
+        state: present
+        update_cache: true
+
+    - name: Enable services
+      service:
+        name: "{{ item }}"
+        enabled: true
+      with_items: "{{ server_enabled_services }}"
+
+#    - name: Add virtual host
+#      template:
+#        src: jenkins.vhost.conf.j2
+#        dest: "{{ vhost_file }}"
+#
+#    - name: Configure
+#      shell:
+#        cmd: "{{ item }}"
+#      with_items:
+#        - a2enmod ssl
+#        - a2enmod proxy
+#        - a2enmod proxy_http
+#        - a2enmod headers
+#        - a2enmod rewrite
+#        - a2dissite 000-default
+#        - a2ensite jenkins
+#        - ufw allow ssh
+#        - ufw allow http
+#        - ufw allow https
+#        - ufw enable
+#
+#    - include_role:
+#        name: myrostadler.certbot
+
+    - name : Run jenkins on port 9999 so no docker conflict on 8080
+      ini_file:
+        path: /etc/default/jenkins
+        section: null
+        option: HTTP_PORT
+        value: 9999
+        no_extra_spaces: true
+#
+#    - name: Jenkins listens on 127.0.0.1 only
+#      lineinfile:
+#        dest: /etc/default/jenkins
+#        line: "--httpListenAddress=127.0.0.1"
+#        state: present
+
+    - name: Add Git known hosts for jenkins
+      lineinfile:
+        dest: /home/jenkins/.ssh/known_hosts
+        line: "{{ item }}"
+        create: true
+      with_items:
+        - git.unipart.io ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDpBhT8N+as8YKC5L0H43hiCTywiwgdQksgk0B97YN21UtZTaTLdL2f0K3rO4OEBS0Yo7fiByw3lW46+/+nlWycs4RG636IjgLO+ZgZt22NMMlCH/UEJcWVTVMlLQe/M6Nk3OeDE6lMUYXj91ECLy/ngZ1zssnEqTDvnJi+841TWqsz/ugI49LTzu4IdFlqMJxXw5sU1YsYtQBFOng2E4/y6e1nFhKWv9v27AaaEwSrHOkwMdEChMqNjooYuvJjwx2utSuc+eLOA8avS0F9hhnJt9zlpBJl45KtQ8XpS2ZThQegIhJb6rk6aadZhgsJpHHd9Xoc3wzR2ZDPLwoDWs8b
+        - github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==
+
+    - name: Restart services
+      service:
+        name: "{{ item }}"
+        state: restarted
+      with_items: "{{ server_enabled_services }}"
+
+    - name: Check if admin password file exists
+      stat:
+        path: /var/lib/jenkins/secrets/initialAdminPassword
+      register: stat_admin_pass
+
+    - name: Read admin password
+      shell:
+        cmd: cat /var/lib/jenkins/secrets/initialAdminPassword
+      register: jenkins_admin_pass
+      when: stat_admin_pass.stat.exists
+
+    - name: Show admin password
+      debug:
+        msg: "{{ jenkins_admin_pass.stdout_lines[0] }}"
+      when: stat_admin_pass.stat.exists

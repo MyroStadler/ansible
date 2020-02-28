@@ -1,0 +1,15 @@
+---
+install_repo_version: master
+install_ssl_cert_file: /etc/pki/tls/certs/localhost.crt
+install_ssl_cert_key_file: /etc/pki/tls/private/localhost.key
+install_env_extra: []
+install_env_app_env: dev
+install_env_app_debug: true
+install_env_domain_name: localhost
+install_database: false
+website_has_remote_database: false
+install_env_database_port: 3306
+install_env_database_host: localhost
+install_default_ssl_conf_file: /etc/httpd/conf.d/ssl.conf
+install_conf_scan_folder: /etc/httpd/conf.d
+install_recreate_fixtures: false # danger! this zaps existing entities when true

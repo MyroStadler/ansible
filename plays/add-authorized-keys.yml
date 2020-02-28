@@ -1,0 +1,15 @@
+---
+- name: Add authorized keys to remote user
+  hosts: all
+  become: true
+  vars:
+    add_authorized_keys:
+      - "ssh-rsa
+        AAAAB3NzaC1yc2EAAAADAQABAAABAQCvmaZv6tagG48vNvQwV19IGZgXigXHz5+0Jt1B97s8SqTf/W9Cv2rD6DQaoBxHfbRM03Q9ggaZ7\
+        uRHUwwXv0ZqxyffRnQDGzXCEAUaxSzAXkJ8rfGTTQn27IOhP1zDM46j7VBHAUM+exAL7jkyNSRxvMc0e6P/yW/spBVupvgKFKSVbkTR0Vwt\
+        pxdlpFey7i46LoQwdCEe6NXG7kPaOIGcDiearuMiaITEx1SnALcguerZ91r61Zd82TBoiJD2TzSz6dmjLAe7bjwOV8rryKTXndMJnIS5UBd\
+        j+1fzGM03bk/GeGUsmdNNW1etg/TBT5Nr1ErfPwaNDUso9zAIr0+H
+        myro@MacBook-Air.qs.unipart.io"
+  tasks:
+  - include_role:
+      name: myrostadler.add_authorized_keys

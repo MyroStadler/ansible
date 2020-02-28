@@ -1,0 +1,70 @@
+---
+# tasks file for centos7_mariadb
+- name: Install MariaDb and initialise database
+  yum:
+    name: mariadb-server #debian: mysql-server
+    state: present
+
+- name: Install the Python MySQL Support Libraries
+  yum: pkg=MySQL-python state=present
+
+- name: Start mysql server and enable it on reboot
+  service:
+    name: mariadb #debian: mysql
+    state: started
+    enabled: true
+
+# See notes on https://docs.ansible.com/ansible/latest/modules/mysql_user_module.html
+- name: Update mysql root password...
+  mysql_user:
+    name: root
+    host_all: true
+    password: "{{ env_database_root_password }}"
+    # DO NOT HAVE 'check_implicit_admin: true'! This breaks idempotence, does not use ~/.my.conf
+    check_implicit_admin: false
+    priv: "*.*:ALL,GRANT"
+  when: install_database and env_database_root_password is defined and (env_database_root_password | default(false))
+
+- name: ...and create .my.cnf
+  template:
+    src: "mysql.cnf.j2"
+    dest: "~/.my.cnf"
+    owner: root
+    group: root
+    mode: 0600
+  when: install_database and env_database_root_password is defined and (env_database_root_password | default(false))
+
+- name: Determine MySQL host entries
+  set_fact:
+    mysql_host_entries:
+      - localhost
+      - "{{ ansible_hostname }}"
+      - "::1"
+      - 127.0.0.1
+  when: mysql_host_entries is not defined
+
+- name: Add dynamic MySQL host entries
+  set_fact:
+    mysql_host_entries: "{{ mysql_host_entries + [ item.ip ] }}"
+  with_items: "{{ allow_external_connections_from }}"
+  when: allow_external_connections_from is defined
+
+- name: "Update mysql password for all {{ env_database_user }} accounts"
+  mysql_user:
+    name: "{{ env_database_user }}"
+    host: "{{ item }}"
+    password: "{{ env_database_password }}"
+    # DO NOT HAVE 'check_implicit_admin: true'! This breaks idempotence, does not use ~/.my.conf
+    check_implicit_admin: false
+    priv: "*.*:ALL,GRANT"
+    # have to use with_items, 'host_all: true' is not allowed for new user
+  with_items: "{{ mysql_host_entries }}"
+  when: >
+    install_database and env_database_user is defined and (env_database_user | default(false)) and
+    env_database_password is defined and (env_database_password | default(false))
+
+- name: "Ensure DB exists (if specified)"
+  mysql_db:
+    name: "{{ install_env_database_name }}"
+    state: present
+  when: install_database and install_env_database_name is defined and (install_env_database_name | default(false))

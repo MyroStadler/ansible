@@ -1,0 +1,50 @@
+---
+all:
+  hosts:
+#    "2a00:1098:25:179::13":
+    z5.mstadler.devonly.net:
+  vars:
+    ansible_user: centos
+
+    server_extra_packages:
+      - php-devel
+      - gcc
+      - make
+      - re2c
+      - autoconf
+      - automake
+      - file
+      - sudo
+
+    php_custom_ini_destination: /etc/php.d/custom-php.ini
+
+    php_install_packages:
+      - php72
+      - php-opcache
+      - php-mcrypt
+      - php-dom
+      - php-mbstring
+      - php-gd
+      - php-xml
+      - php-curl
+    
+#    php_install_db_packages:
+#      - php72-php-pdo
+#      - php72-php-mysql
+#      - php72-php-pgsql
+#
+    php_install_extra_packages:
+      - php-pear
+      - php-pecl-imagick
+      - php-pecl-imagick-devel
+
+    php_ini_settings_extra: []
+
+#
+#    selinux_booleans:
+#      - name: httpd_can_network_connect
+#        state: true
+#      - name: httpd_execmem
+#        state: true
+
+    selinux_contexts: []

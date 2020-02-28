@@ -1,0 +1,24 @@
+---
+# defaults file for centos7_server
+server_packages:
+  - yum-utils
+  - git
+  - curl
+  - make
+  - cronie
+  - unzip
+  - coreutils
+  - firewalld
+
+server_apache_packages:
+  - httpd
+  - mod_ssl
+
+server_ops_packages:
+  - vim
+
+server_extra_packages: []
+
+server_enabled_services:
+  - httpd
+  - firewalld

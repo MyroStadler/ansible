@@ -1,0 +1,85 @@
+---
+- name: Get install directory
+  set_fact: install_dir="/var/www/{{ install_dir_name }}"
+
+- name: Add / replace default SSL config
+  template:
+    src: ssl.conf.j2
+    dest: "{{ install_default_ssl_conf_file }}"
+    force: true
+
+- name: Add virtual host
+  template:
+    src: vhost.conf.j2
+    dest: "{{ install_conf_scan_folder }}/{{ install_dir_name }}.conf"
+
+- name: Zap old git checkout in /tmp
+  file:
+    path: "/tmp/{{ install_dir_name }}"
+    state: absent
+
+- name: Check out site git repo to /tmp, using SSH
+  git:
+    repo: "{{ install_repo_ssh_uri }}"
+    version: "{{ install_repo_version }}"
+    dest: "/tmp/{{ install_dir_name }}"
+    clone: true
+    accept_hostkey: true
+  become: false
+
+- name: Zap old installed website
+  file:
+    path: "{{ install_dir }}"
+    state: absent
+
+- name: "Copy repo checkout to {{ install_dir }}"
+  command: "mv /tmp/{{ install_dir_name }} /var/www/"
+  changed_when: false
+
+- name: Add standard .env file
+  template:
+    src: env.j2
+    dest: "{{ install_dir }}/.env"
+  when: install_env_lines is defined
+
+- name: Add lines to .env file
+  lineinfile:
+    dest: "{{ install_dir }}/.env"
+    line: "{{ item.name }}={{ item.value }}"
+  with_items: "{{ install_env_lines }}"
+  when: install_env_lines is defined and install_env_lines|length > 0
+  no_log: true
+
+- name: "Ensure {{ ansible_user }} is the owner of and permissions are correct for {{ install_dir }}"
+  file:
+    dest: "{{ install_dir }}"
+    owner: "{{ ansible_user }}"
+    group: apache
+    mode: u=rwX,g=rX,o=rX
+    recurse: true
+
+- name: Install apache modules
+  apache2_module:
+    state: present
+    name: "{{ item }}"
+  with_items:
+    - proxy
+
+- include_role:
+    name: geerlingguy.docker
+
+- name: Enable Docker services
+  service:
+    name: "{{ item }}"
+    enabled: true
+  with_items:
+    - docker
+
+# this wouldn't work properly
+- name: Make
+  command:
+    chdir: "{{ install_dir }}"
+    cmd: "make {{ item }}"
+  with_items: "{{ install_make_targets }}"
+  when: install_make_targets is defined
+  changed_when: false

@@ -1,0 +1,12 @@
+---
+- name: "Add Java and LibreOffice to a server"
+  hosts: all
+  become: true
+  vars:
+  tasks:
+    - include_role:
+        name: geerlingguy.java
+    - name: Install LibreOffice
+      package:
+        name: libreoffice
+        state: present

@@ -1,0 +1,23 @@
+---
+- name: "DEV: Install Apache, PHP, MariaDB, SSL and simple PHP website"
+  hosts: all
+  become: true
+  vars:
+  tasks:
+    - include_role:
+        name: myrostadler.centos7_server
+    - include_role:
+        name: myrostadler.ssh_deploy_prep
+    - include_role:
+        name: myrostadler.centos7_php
+    - include: tasks/el7-install-db.yml
+    - include_role:
+        name: myrostadler.centos7_php_website
+    - include_role:
+        name: myrostadler.centos7_selinux
+    - include_role:
+        name: myrostadler.certbot
+    - include: tasks/el7-open-port.yml
+      vars:
+        port: "{{ php_ini_xdebug_remote_port | default('9001') }}"
+      when: install_env_app_env == 'dev'

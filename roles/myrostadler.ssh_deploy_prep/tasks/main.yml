@@ -1,0 +1,41 @@
+---
+- name: Enable SSH forwarding, so your local keys count for git checkouts
+  lineinfile:
+    dest: /etc/sudoers
+    line: "Defaults        env_keep+=SSH_AUTH_SOCK"
+
+- name: "Add Git known hosts for {{ ansible_user }}"
+  lineinfile:
+    dest: "/home/{{ ansible_user }}/.ssh/known_hosts"
+    line: "{{ item }}"
+    create: true
+    mode: 0644
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  with_items: "{{ ssh_deploy_prep_known_hosts }}"
+
+- name: "Add Git known hosts for root"
+  lineinfile:
+    dest: "/root/.ssh/known_hosts"
+    line: "{{ item }}"
+    create: true
+    mode: 0644
+  with_items: "{{ ssh_deploy_prep_known_hosts }}"
+
+- name: "Add Git known hosts for extra users"
+  lineinfile:
+    dest: "/home/{{ item }}/.ssh/known_hosts"
+    line: "{{ item }}"
+    create: true
+    mode: 0644
+    owner: "{{ item }}"
+    group: "{{ item }}"
+  with_items: "{{ ssh_deploy_prep_extra_users }}"
+  when: ssh_deploy_prep_extra_users is defined and ssh_deploy_prep_extra_users|length > 0
+
+- name: Restart services
+  service:
+    name: "{{ item }}"
+    state: restarted
+  with_items: "{{ ssh_deploy_prep_restart_services }}"
+  when: ssh_deploy_prep_restart_services is defined and ssh_deploy_prep_restart_services|length > 0

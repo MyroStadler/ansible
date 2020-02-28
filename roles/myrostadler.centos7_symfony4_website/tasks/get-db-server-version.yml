@@ -1,0 +1,27 @@
+- name: Get DB server version (mysql)
+  command: >-
+    "mysql -h{{ install_env_database_host }} -u{{ install_env_database_user }}
+    -p{{ install_env_database_password }} -P{{ install_env_database_port }} -e 'SELECT VERSION();'"
+  register: install_db_server_version
+  changed_when: false
+  when: (install_database or website_has_remote_database) and install_env_database_protocol == 'mysql'
+- name: Extract DB server version (mysql)
+  set_fact: install_env_database_server_version="{{ install_db_server_version.stdout_lines[1] }}"
+  no_log: true
+  when: (install_database or website_has_remote_database) and install_env_database_protocol == 'mysql'
+
+- name: Get DB server version (pgsql)
+  raw: >-
+    "PGPASSWORD={{ install_env_database_password }} psql -h {{ install_env_database_host }} -U
+    {{ install_env_database_user }} -d {{ install_env_database_name }} -c 'SHOW server_version;'"
+#  command: sudo -u postgres psql -c "SHOW server_version;"
+  register: install_db_server_version
+  changed_when: false
+  when: (install_database or website_has_remote_database) and install_env_database_protocol == 'pgsql'
+- name: Extract DB server version (pgsql)
+  set_fact: install_env_database_server_version="{{ install_db_server_version.stdout_lines[2] | trim }}"
+  when: (install_database or website_has_remote_database) and install_env_database_protocol == 'pgsql'
+
+- name: Ensure safe values
+  set_fact: install_env_database_server_version='0.0.0'
+  when: install_env_database_server_version is not defined or (install_env_database_server_version | length == 0)

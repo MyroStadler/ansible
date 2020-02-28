@@ -1,0 +1,13 @@
+- name: Check if composer.json exists
+  stat:
+    path: "{{ install_dir }}/composer.json"
+  register: stat_composer_json
+
+- name: Install php project libraries using composer
+  composer:
+    command: install
+    working_dir: "{{ install_dir }}"
+    # composer does not see scripts as secure when running as root, you would get a warning
+    no_scripts: true
+    no_dev: "{{ install_env_app_env != 'dev' }}"
+  when: stat_composer_json.stat.exists

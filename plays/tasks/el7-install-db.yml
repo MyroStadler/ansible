@@ -1,0 +1,5 @@
+# If you so not want a database, have empty var install_env_database_protocol
+- include: el7-install-db-mysql.yml
+  when: install_env_database_protocol is defined and install_env_database_protocol == 'mysql'
+- include: el7-install-db-pgsql.yml
+  when: install_env_database_protocol is defined and install_env_database_protocol == 'pgsql'

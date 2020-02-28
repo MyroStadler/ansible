@@ -1,0 +1,31 @@
+---
+- name: "DEV: Install PHP Dockerised network wrapped in an Apache proxypass"
+  hosts: all
+  become: true
+  vars:
+  tasks:
+    - include_role:
+        name: myrostadler.centos7_server
+    - include_role:
+        name: myrostadler.centos7_php
+    - name: "SELinux: set booleans"
+      seboolean:
+        name: "{{ item.name }}"
+        persistent: true
+        state: "{{ item.value }}"
+      with_items: "{{ install_sebooleans }}"
+      when: install_sebooleans is defined and install_sebooleans|length > 0
+    - include_role:
+        name: myrostadler.centos7_php_docker
+    - include_role:
+        name: myrostadler.certbot
+    - include: tasks/el7-open-port.yml
+      vars:
+        port: "{{ php_ini_xdebug_remote_port | default('9001') }}"
+      when: install_env_app_env == 'dev'
+    - name: Manual steps required
+      pause:
+        seconds: 10
+        prompt: "You may need to log on to the server and run make targets"
+      when: install_make_targets is not defined or install_make_targets|length == 0
+

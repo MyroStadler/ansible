@@ -1,0 +1,61 @@
+---
+- name: "Update git for a PHP website"
+  hosts: all
+  become: true
+  vars:
+
+  tasks:
+    - name: Get install directory
+      set_fact: install_dir="/var/www/{{ install_dir_name }}"
+
+    - name: "Temporarily grant user {{ ansible_user }} access to {{ install_dir }}"
+      acl:
+        path: "{{ install_dir }}"
+        recursive: true
+        entity: "{{ ansible_user }}"
+        etype: user
+        permissions: rwx
+        state: present
+
+    - name: Run git reset, since ansible git module does not --force on checkout
+      command: git reset --hard HEAD
+      args:
+        chdir: "{{ install_dir }}"
+        warn: false
+      changed_when: false
+      when: git_update_does_reset is defined and (git_update_does_reset | bool)
+
+    - name: Run git clean, since ansible git module does not --force on checkout
+      command: git clean -df
+      args:
+        chdir: "{{ install_dir }}"
+        warn: false
+      changed_when: false
+      when: git_update_does_clean is defined and (git_update_does_clean | bool)
+
+    - name: Update site git repo
+      git:
+        repo: "{{ install_repo_ssh_uri }}"
+        version: "{{ install_repo_version }}"
+        dest: "{{ install_dir }}"
+        clone: false
+        force: true
+        update: true
+        accept_hostkey: true
+        # ssh key issues with being root for git checkout
+      become: false
+
+    - include: tasks/el7-install-composer-if-found.yml
+
+    - name: "Remove the temporary access for user {{ ansible_user }} to {{ install_dir }}"
+      acl:
+        path: "{{ install_dir }}"
+        entity: "{{ ansible_user }}"
+        etype: user
+        state: absent
+
+    - include: tasks/el7-update-symfony.yml
+      when: install_type is defined and install_type == 'symfony4'
+
+
+

@@ -1,0 +1,57 @@
+---
+- name: Install remi repo
+  yum:
+    name: "{{ php_remi_repo_url }}"
+    state: present
+
+- name: Import remi GPG key
+  rpm_key:
+    key: "{{ php_remi_repo_key_url }}"
+    state: present
+
+- name: Install php_install_packages
+  yum:
+    name: "{{ php_install_packages }}"
+    enablerepo: "{{ php_install_enabled_repos }}"
+    state: installed
+
+- name: Install php_install_db_packages
+  yum:
+    name: "{{ php_install_db_packages }}"
+    enablerepo: "{{ php_install_enabled_repos }}"
+    state: installed
+
+- name: Install php_install_debug_packages
+  yum:
+    name: "{{ php_install_debug_packages }}"
+    enablerepo: "{{ php_install_enabled_repos }}"
+    state: installed
+
+- name: Install php_install_extra_packages
+  yum:
+    name: "{{ php_install_extra_packages }}"
+    enablerepo: "{{ php_install_enabled_repos }}"
+    state: installed
+
+- name: Check if PHP needs symlink
+  stat:
+    path: "{{ php_symlink_destination }}"
+  register: stat_php_symlink
+
+- name: Symlink php
+  file:
+    src: "{{ php_symlink_source }}"
+    dest: "{{ php_symlink_destination }}"
+    state: link
+  when: not stat_php_symlink.stat.exists
+
+- name: Add custom php.ini
+  template:
+    src: custom-php.ini.j2
+    dest: "{{ php_custom_ini_destination }}"
+
+- name: Restart services
+  service:
+    name: "{{ item }}"
+    state: restarted
+  with_items: "{{ php_restart_services }}"

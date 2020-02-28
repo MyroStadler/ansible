@@ -1,0 +1,45 @@
+---
+- name: "DEV: Install Zephir development environment"
+  hosts: all
+  become: true
+  vars:
+  tasks:
+    - include_role:
+        name: myrostadler.centos7_server
+    - include_role:
+        name: myrostadler.centos7_php
+    - include_role:
+        name: geerlingguy.composer
+
+    - name: Install php-zephir-parser
+      shell: |
+        cd
+        rm -Rf php-zephir-parser
+        git clone git://github.com/phalcon/php-zephir-parser.git
+        cd php-zephir-parser/
+        phpize
+        ./configure
+        make
+        make install
+      when:
+
+    - name: Configure PHP
+      blockinfile:
+        path: "{{ php_custom_ini_destination }}"
+        block: |
+          [Zephir Parser]
+          extension=zephir_parser.so
+
+    - name: Check if Zephir is installed
+      stat:
+        path: /usr/bin/zephir
+      register: stat_zephir
+
+    - name: Install Zephir using .phar
+      shell: |
+        cd
+        wget https://github.com/phalcon/zephir/releases/download/0.12.16/zephir.phar
+        chmod +x zephir.phar
+        mv zephir.phar /usr/bin/zephir
+      when: not stat_zephir.stat.exists
+

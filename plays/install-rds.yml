@@ -1,0 +1,6 @@
+---
+- name: "DEV: Install MariaDB / PostgreSQL on a remote data server"
+  hosts: all
+  become: true
+  tasks:
+    - include: tasks/el7-install-db.yml
